@@ -28,5 +28,5 @@ Common node and cluster issues can be gathered from support dump by running the 
 bash ~/Projects/ishmael/sd_patterns.sh
 ```
 
-Print out is sectioned by 1) search text, 2) number of occurrences, and 3) last lines in files.
+Print out is sectioned by 1) search pattern (red), 2) number of occurrences (blue), and 3) last line in file (green for path to file).
 TODO: would like to add links and advice for how to fix said error if possible
