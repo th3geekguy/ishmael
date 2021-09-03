@@ -2,8 +2,8 @@
 Ishmael, the main character of _Moby Dick_, is the codename for my personal project to create a better analysis tool for our company support dumps.
 
 # Prequisites
-Python3 installedcat
-A modern terminal with support for UTF-8 and escape codes for coloring/icons: https://unix.stackexchange.com/questions/303712/how-can-i-enable-utf-8-support-in-the-linux-console
+- Python3 installed
+- A modern terminal with support for UTF-8 and escape codes for coloring/icons: https://unix.stackexchange.com/questions/303712/how-can-i-enable-utf-8-support-in-the-linux-console
 
 # Install
 ## Linux
@@ -28,5 +28,9 @@ Common node and cluster issues can be gathered from support dump by running the 
 bash ~/Projects/ishmael/sd_patterns.sh
 ```
 
-Print out is sectioned by 1) search pattern (red), 2) number of occurrences (blue), and 3) last line in file (green for path to file).
-TODO: would like to add links and advice for how to fix said error if possible
+Print out is sectioned by:
+ 1. search pattern (red)
+ 2. number of occurrences (blue)
+ 3. last line in file (green for path to file)
+
+_**TODO**_: would like to add links and advice for how to fix said error if possible
