@@ -1,5 +1,7 @@
 #!/bin/sed -f
-s/leader\b/\x1b[32m&\x1b[0m/g
+s/\bleader\b/\x1b[32m&\x1b[0m/g
+s/\bpause\b/\x1b[2m&\x1b[0m/g
+s/\bdrain\b/\x1b[7m&\x1b[0m/g
 s/\bready\b/\x1b[32m&\x1b[0m/g
 s/\bHealthy\b/\x1b[32m&\x1b[0m/g
 s/\bmanager\b/\x1b[34m&\x1b[0m/g

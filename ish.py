@@ -65,12 +65,16 @@ def sd_print(sd):
     body_widths = [max(map(len, col)) for col in zip(*(node.values() for node in sd))]
     head_widths = [max(map(len, col)) for col in zip(*(node.keys() for node in sd))]
     col_widths = numpy.maximum(head_widths, body_widths)
+    node_count = 0
 
     print("  ".join((key.upper().ljust(width) for key, width in zip(sd[0].keys(), col_widths))))
     print("─" * (sum(col_widths) + len(col_widths) * 2))
     for node in sd:
+        node_count += 1
         print("  ".join((value.ljust(width) for value, width in zip(node.values(), col_widths))))
         '''print(" ▏".join((value.ljust(width) for value, width in zip(node.values(), col_widths))))'''
+    print("─" * (sum(col_widths) + len(col_widths) * 2))
+    print("Nodes:", node_count)
 
 def load(f):
     with open(f, 'r') as r:
