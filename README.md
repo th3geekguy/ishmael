@@ -7,7 +7,7 @@ Ishmael, the main character of _Moby Dick_, is the codename for my personal proj
 
 # Install
 ## Linux
-I have the repository downloaded to ~/Projects/ishmael/ and created the following function in my ~/.bashrc:
+I have the repository downloaded to `~/Projects/ishmael/` and created the following function in my `~/.bashrc`:
 ```bash
 ish()
 {
@@ -29,6 +29,7 @@ bash ~/Projects/ishmael/sd_patterns.sh
 ```
 
 Print out is sectioned by:
+
  1. search pattern (red)
  2. number of occurrences (blue)
  3. last line in file (green for path to file)
