@@ -11,7 +11,7 @@ I have the repository downloaded to `~/Projects/ishmael/` and created the follow
 ```bash
 ish()
 {
-  clear && ~/Projects/ishmael/ish.py | sed -f ~/Projects/ishmael/colors.sed
+  clear && ~/Projects/ishmael/ish.py "$@" | sed -f ~/Projects/ishmael/colors.sed
 }
 ```
 
