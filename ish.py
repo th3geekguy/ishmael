@@ -1,6 +1,13 @@
 #!/usr/bin/env python3
 
-import os, json, fnmatch, numpy
+import argparse, os, json, fnmatch, numpy
+
+def parse_arguments():
+    parser = argparse.ArgumentParser(description='Display cluster/node information found in support dump.')
+    parser.add_argument('-w', '--hardware', action='store_true', help='Display hardware specific details')
+    parser.add_argument('-v', '--verbose', action='store_true', help='Verbose mode')
+    arguments = parser.parse_args()
+    return arguments
 
 def findfile(topdir, f_glob):
     for d_name, sd_name, f_list in os.walk(topdir):
@@ -61,7 +68,18 @@ def full_os_details(hostname):
     except FileNotFoundError:        # for nodes that the SD did not gather info, at least return the default values
         return full_os_text.strip(), hpv
 
-def sd_print(sd):
+def get_cluster_id(hostname):
+    node_dsinfo_filename = os.path.join(hostname, "dsinfo.json")
+    try:
+        with open(node_dsinfo_filename, 'r') as inf:
+            specs = json.load(inf)
+        swarm = specs['docker_info']['Swarm'] if 'docker_info' in specs else '(failed to fetch)'
+        return swarm['Cluster']['ID'] if 'Cluster' in swarm else '(failed to fetch)'
+    except FileNotFoundError:
+        return None
+
+
+def sd_print(sd, show_nc=True):
     body_widths = [max(map(len, col)) for col in zip(*(node.values() for node in sd))]
     head_widths = [max(map(len, col)) for col in zip(*(node.keys() for node in sd))]
     col_widths = numpy.maximum(head_widths, body_widths)
@@ -72,15 +90,18 @@ def sd_print(sd):
     for node in sd:
         node_count += 1
         print("  ".join((value.ljust(width) for value, width in zip(node.values(), col_widths))))
-        '''print(" ▏".join((value.ljust(width) for value, width in zip(node.values(), col_widths))))'''
+        #print(" ▏".join((value.ljust(width) for value, width in zip(node.values(), col_widths))))
     print("─" * (sum(col_widths) + len(col_widths) * 2))
-    print("Nodes:", node_count)
+    if show_nc:
+        print("Nodes:", node_count)
 
-def load(f):
+def display_nodes(args, f):
     with open(f, 'r') as r:
         sd = json.load(r)
 
     nodes = []
+    hw = []
+    cluster = []
 
     for node in sd:
         host = node['Description']['Host'] if 'Host' in node['Description'] else 'n/a'
@@ -91,8 +112,8 @@ def load(f):
         arch = desc['Platform']['Architecture'] if 'Architecture' in desc['Platform'] else 'N/A'
         os = desc['Platform']['OS'] if 'OS' in desc['Platform'] else 'N/A'
         os_string, hypervisor = full_os_details(hostname) if os == 'linux' else ('N/A', '-')
-        os = os.replace('linux', '🐧 ')
-        os = os.replace('windows', '📂 ')
+        os = os.replace('linux', '� ')
+        os = os.replace('windows', '� ')
         engver = desc['Engine']['EngineVersion'] if 'EngineVersion' in desc['Engine'] else 'N/A'
 
         '''Status'''
@@ -151,8 +172,33 @@ def load(f):
                       'status_message': stsmsg, \
                       'os ': os})
 
-    s = sorted(nodes, key=lambda k: k['hostname'])
-    sd_print(s)
+        if args.hardware or args.verbose:
+            '''Hardware Specific'''
+            cpus = f"{desc['Resources']['NanoCPUs'] // 1000000000}"
+            mem = f"{round(desc['Resources']['MemoryBytes'] / 1024**3, 2)}GiB"
+
+            hw.append({'hostname': hostname, \
+                       'id': cid, \
+                       'role': role, \
+                       'mcr': engver, \
+                       'mke/msr': ucpdtrver, \
+                       'os_version': os_string, \
+                       'cpus': cpus, \
+                       'memory': mem})
+
+        cluster.append(get_cluster_id(hostname))
+
+    if args.verbose or not args.hardware:
+        s = sorted(nodes, key=lambda k: k['hostname'])
+        sd_print(s, not args.verbose)
+    if args.verbose:
+        print("")
+    if args.verbose or args.hardware:
+        s = sorted(hw, key=lambda k: k['hostname'])
+        sd_print(s)
+
+    print('Cluster ID:', ' '.join(set([i for i in cluster if i is not None])))
 
 if __name__ == "__main__":
-    load("ucp-nodes.txt")
+    args = parse_arguments()
+    display_nodes(args, "ucp-nodes.txt")
