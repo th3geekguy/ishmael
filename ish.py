@@ -73,8 +73,8 @@ def get_cluster_id(hostname):
     try:
         with open(node_dsinfo_filename, 'r') as inf:
             specs = json.load(inf)
-        swarm = specs['docker_info']['Swarm'] if 'docker_info' in specs else '(failed to fetch)'
-        return swarm['Cluster']['ID'] if 'Cluster' in swarm else '(failed to fetch)'
+        swarm = specs['docker_info']['Swarm'] if 'docker_info' in specs else ''
+        return swarm['Cluster']['ID'] if 'Cluster' in swarm else None
     except FileNotFoundError:
         return None
 
@@ -197,7 +197,7 @@ def display_nodes(args, f):
         s = sorted(hw, key=lambda k: k['hostname'])
         sd_print(s)
 
-    print('Cluster ID:', ' '.join(set([i for i in cluster if i is not None])))
+    print('Cluster ID:', ' '.join(set([i for i in cluster if i is not None])) or '(failed to fetch)')
 
 if __name__ == "__main__":
     args = parse_arguments()
