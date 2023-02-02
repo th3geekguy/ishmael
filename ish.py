@@ -3,9 +3,10 @@
 import argparse, os, json, fnmatch, numpy
 
 def parse_arguments():
-    parser = argparse.ArgumentParser(description='Display cluster/node information found in support dump.')
+    parser = argparse.ArgumentParser(description='Display cluster/node information found in support dump')
     parser.add_argument('-w', '--hardware', action='store_true', help='Display hardware specific details')
     parser.add_argument('-v', '--verbose', action='store_true', help='Verbose mode')
+    parser.add_argument('-c', '--clusterid', action='store_true', help='Gather cluster id from dsinfo.json')
     arguments = parser.parse_args()
     return arguments
 
@@ -186,7 +187,8 @@ def display_nodes(args, f):
                        'cpus': cpus, \
                        'memory': mem})
 
-        cluster.append(get_cluster_id(hostname))
+        if args.clusterid:
+            cluster.append(get_cluster_id(hostname))
 
     if args.verbose or not args.hardware:
         s = sorted(nodes, key=lambda k: k['hostname'])
@@ -197,7 +199,8 @@ def display_nodes(args, f):
         s = sorted(hw, key=lambda k: k['hostname'])
         sd_print(s)
 
-    print('Cluster ID:', ' '.join(set([i for i in cluster if i is not None])) or '(failed to fetch)')
+    if args.clusterid:
+        print('Cluster ID:', ' '.join(set([i for i in cluster if i is not None])) or '(failed to fetch)')
 
 if __name__ == "__main__":
     args = parse_arguments()
