@@ -4,9 +4,10 @@ import argparse, os, json, fnmatch, numpy
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Display cluster/node information found in support dump')
-    parser.add_argument('-w', '--hardware', action='store_true', help='Display hardware specific details')
-    parser.add_argument('-v', '--verbose', action='store_true', help='Verbose mode')
     parser.add_argument('-c', '--clusterid', action='store_true', help='Gather cluster id from dsinfo.json')
+    parser.add_argument('-j', '--json', action='store_true', help='Render output as json')
+    parser.add_argument('-v', '--verbose', action='store_true', help='Verbose mode')
+    parser.add_argument('-w', '--hardware', action='store_true', help='Display hardware specific details')
     arguments = parser.parse_args()
     return arguments
 
@@ -25,9 +26,7 @@ def getddcver(nodename,f_glob,k):
             j = json.load(r)
 
         env = j[0]['Config']['Env']
-        # print env
         imgverstr = [s for s in env if k in s]
-        # print imgverstr[0]
         imgver = imgverstr[0].split('=')[1]
         return imgver
 
@@ -38,6 +37,7 @@ def full_os_details(hostname):
     dsi_os = "NoInfo "   ## docker system info result
     full_os_text = os_type + '-' + os_version + '/' + dsi_os
     hpv = "None"
+    kernel = "-"
     try:      ## after setting some default values, we see what the dsinfo.txt file has
         with open(node_dsinfo_filename, 'r') as inf:
             for line in inf:
@@ -45,19 +45,19 @@ def full_os_details(hostname):
                 if line.startswith("Operating System: "):
                     dsi_os = line.split(': ')[1].strip()
                     dsi_os = dsi_os.replace('Red Hat Enterprise Linux', 'RHEL')
-                    '''
-                    dsi_os = dsi_os.replace('Red ', 'R').replace('Hat ', 'H').replace('Enterprise ', 'E')
-                    '''
                     dsi_os = dsi_os.split('(')[0]  # RHEL 7.9 (Maipo) will become RHEL 7.9
-                if line.startswith("NAME="):
+                elif line.startswith("NAME="):
                     os_type = line.split('=')[1].strip().strip('"')
                     ## Just to make the output a little shorter
                     if os_type.startswith("Red"):
                         os_type = "RHEL"
-                if line.startswith("VERSION="):
+                elif line.startswith("VERSION="):
                     os_version = line.split('=')[1].strip().strip('"')
                     os_version = os_version.split('(')[0].strip()   ## 20.04.1 LTS (Focal Fossa)  --> 20.04.1 LTS
                 full_os_text = os_type + '-' + os_version + '/' + dsi_os
+
+                if line.startswith("Kernel Version:"):
+                    kernel = line.split(':')[1].strip()
 
                 if line.startswith("Hypervisor vendor: "):
                     hpv = line.split(': ')[1].strip()
@@ -65,9 +65,46 @@ def full_os_details(hostname):
                 if line.startswith("mount"):   # reached this point? you will not find any line about Hypervisor, stop reading the rest of the file
                     break
             full_os_text = (os_type + '-' + os_version + '/' + dsi_os).strip()
-            return full_os_text, hpv  #in case that the dsinfo.txt file has no line starting with Hypervisor vendor:  at least return - as hpv
-    except FileNotFoundError:        # for nodes that the SD did not gather info, at least return the default values
-        return full_os_text.strip(), hpv
+            return full_os_text, hpv, kernel  # in case that the dsinfo.txt file has no line starting with Hypervisor vendor:  at least return - as hpv
+    except FileNotFoundError:                 # for nodes that the SD did not gather info, at least return the default values
+        return full_os_text.strip(), hpv, kernel
+
+def full_os_details_sep(hostname):
+    node_dsinfo_filename = os.path.join(hostname, "dsinfo.txt")
+    os_ext = os_type = os_version = dsi_os = "- "   ## docker system info result
+    full_os_text = os_type + '-' + os_version + '/' + dsi_os
+    hpv = kernel = "-"
+    try:      ## after setting some default values, we see what the dsinfo.txt file has
+        with open(node_dsinfo_filename, 'r') as inf:
+            for line in inf:
+                line = line.lstrip()
+                if line.startswith("Operating System: "):
+                    dsi_os = line.split(': ')[1].strip()
+                    dsi_os = dsi_os.replace('Red Hat Enterprise Linux', 'RHEL')
+                    dsi_os = dsi_os.split('(')[0]  # RHEL 7.9 (Maipo) will become RHEL 7.9
+                elif line.startswith("NAME="):
+                    os_type = line.split('=')[1].strip().strip('"')
+                    ## Just to make the output a little shorter
+                    if os_type.startswith("Red"):
+                        os_type = "RHEL"
+                elif line.startswith("VERSION="):
+                    os_version = line.split('=')[1].strip().strip('"')
+                    os_version = os_version.split('(')[0].strip()   ## 20.04.1 LTS (Focal Fossa)  --> 20.04.1 LTS
+                full_os_text = os_type + '-' + os_version + '/' + dsi_os
+
+                if line.startswith("Kernel Version:"):
+                    kernel = line.split(':')[1].strip()
+
+                if line.startswith("Hypervisor vendor: "):
+                    hpv = line.split(': ')[1].strip()
+                    break
+                if line.startswith("mount"):   # reached this point? you will not find any line about Hypervisor, stop reading the rest of the file
+                    break
+            #full_os_text = (os_type + '-' + os_version + '/' + dsi_os).strip()
+                os_ext = '-'.join([os_type, os_version]).strip()
+            return os_ext, dsi_os, hpv, kernel  # in case that the dsinfo.txt file has no line starting with Hypervisor vendor:  at least return - as hpv
+    except FileNotFoundError:                 # for nodes that the SD did not gather info, at least return the default values
+        return os_ext, dsi_os, hpv, kernel
 
 def get_cluster_id(hostname):
     node_dsinfo_filename = os.path.join(hostname, "dsinfo.json")
@@ -91,10 +128,13 @@ def sd_print(sd, show_nc=True):
     for node in sd:
         node_count += 1
         print("  ".join((value.ljust(width) for value, width in zip(node.values(), col_widths))))
-        #print(" ▏".join((value.ljust(width) for value, width in zip(node.values(), col_widths))))
+        #print(" ▏".join((value.ljust(width) for value, width in zip(node.values(), col_widths)))) # join cols with | instead
     print("─" * (sum(col_widths) + len(col_widths) * 2))
     if show_nc:
         print("Nodes:", node_count)
+
+def json_print(sd):
+    print(json.dumps(sd))
 
 def display_nodes(args, f):
     with open(f, 'r') as r:
@@ -112,7 +152,7 @@ def display_nodes(args, f):
         hostname = desc['Hostname'] if 'Hostname' in desc else 'N/A'
         arch = desc['Platform']['Architecture'] if 'Architecture' in desc['Platform'] else 'N/A'
         os = desc['Platform']['OS'] if 'OS' in desc['Platform'] else 'N/A'
-        os_string, hypervisor = full_os_details(hostname) if os == 'linux' else ('N/A', '-')
+        os_version, release, hypervisor, kernel = full_os_details_sep(hostname) if os == 'linux' else ('N/A', '-', 'N/A')
         os = os.replace('linux', '� ')
         os = os.replace('windows', '� ')
         engver = desc['Engine']['EngineVersion'] if 'EngineVersion' in desc['Engine'] else 'N/A'
@@ -151,26 +191,32 @@ def display_nodes(args, f):
 
         if dtrver != '-':
             role += '/MSR'
-        ucpdtrver = '/'.join([ucpver,dtrver])
+        #ucpdtrver = '/'.join([ucpver,dtrver])
 
         c_at = node['CreatedAt'].split('T')[0]
         u_at = node['UpdatedAt'].split('T')[0]
-        t_stamps = '/'.join([c_at,u_at])
+        #t_stamps = '/'.join([c_at,u_at])
 
         nodes.append({'hostname': hostname, \
                       'id': cid, \
                       'role': role, \
-                      'os_version': os_string, \
+                      #'os_version': os_string, \
+                      'os': os_version, \
+                      'release': release, \
                       'hpvs': hypervisor, \
-                      'avail': avail, \
+                      'member': avail, \
                       'state': state, \
                       'ip': addr, \
                       'mcr': engver, \
-                      'mke/msr': ucpdtrver, \
+                      #'mke/msr': ucpdtrver, \
+                      'mke': ucpver, \
+                      'msr': dtrver, \
                       'collect': collect, \
-                      'orch': orch, \
-                      'created/updated': t_stamps, \
-                      'status_message': stsmsg, \
+                      'orchest': orch, \
+                      #'created/updated': t_stamps, \
+                      'created': c_at, \
+                      'updated': u_at, \
+                      'status': stsmsg, \
                       'os ': os})
 
         if args.hardware or args.verbose:
@@ -182,22 +228,32 @@ def display_nodes(args, f):
                        'id': cid, \
                        'role': role, \
                        'mcr': engver, \
-                       'mke/msr': ucpdtrver, \
-                       'os_version': os_string, \
+                       #'mke/msr': ucpdtrver, \
+                       'mke': ucpver, \
+                       'msr': dtrver, \
+                       'kernel': kernel, \
+                       #'os_version': os_string, \
+                       'os': os_version, \
+                       'release': release, \
                        'cpus': cpus, \
                        'memory': mem})
 
         if args.clusterid:
             cluster.append(get_cluster_id(hostname))
 
-    if args.verbose or not args.hardware:
-        s = sorted(nodes, key=lambda k: k['hostname'])
-        sd_print(s, not args.verbose)
-    if args.verbose:
-        print("")
-    if args.verbose or args.hardware:
-        s = sorted(hw, key=lambda k: k['hostname'])
-        sd_print(s)
+    if not args.json:
+        if args.verbose or not args.hardware:
+            s = sorted(nodes, key=lambda k: k['hostname'])
+            sd_print(s, not args.verbose)
+        if args.verbose:
+            print("")
+        if args.verbose or args.hardware:
+            s = sorted(hw, key=lambda k: k['hostname'])
+            sd_print(s)
+    else:
+        v = [e | next((f for f in hw if f["hostname"] == e["hostname"]), None) for e in nodes]
+        vv = sorted(v, key=lambda k: k['hostname'])
+        json_print(vv)
 
     if args.clusterid:
         print('Cluster ID:', ' '.join(set([i for i in cluster if i is not None])) or '(failed to fetch)')
