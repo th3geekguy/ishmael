@@ -152,9 +152,9 @@ def display_nodes(args, f):
         hostname = desc['Hostname'] if 'Hostname' in desc else 'N/A'
         arch = desc['Platform']['Architecture'] if 'Architecture' in desc['Platform'] else 'N/A'
         os = desc['Platform']['OS'] if 'OS' in desc['Platform'] else 'N/A'
-        os_version, release, hypervisor, kernel = full_os_details_sep(hostname) if os == 'linux' else ('N/A', '-', 'N/A')
-        os = os.replace('linux', '� ')
-        os = os.replace('windows', '� ')
+        os_version, release, hypervisor, kernel = full_os_details_sep(hostname) if os == 'linux' else ('N/A', '-', 'N/A', '-')
+        os = os.replace('linux', '🐧')
+        os = os.replace('windows', '🗑️')
         engver = desc['Engine']['EngineVersion'] if 'EngineVersion' in desc['Engine'] else 'N/A'
 
         '''Status'''

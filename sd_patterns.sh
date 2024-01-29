@@ -7,7 +7,7 @@
 
 search_sd() {
 	PATTERN_PRINT=false
-	for file in $( grep -r -l "$PATTERN" . ) 
+	for file in $( rgrep -l "$PATTERN" . ) 
 	do
 		if [ "$PATTERN_PRINT" = false ]; then
 			echo -e "\nThe pattern \x1b[31m'$PATTERN'\x1b[0m appears "
@@ -94,10 +94,11 @@ PATTERNS=(
 	'"level":"fatal"'
 	'LOG_LEVEL=debug'
 	'OVERLAP on Network'
+	'net.ipv4.ip_forward = 0'
 )
 
 for PATTERN in "${PATTERNS[@]}"
 do
 	search_sd
 done
-grep -r LOG_LEVEL=debug . ## to be sure that no containers of the cluster have been forgotten on a debug level
+rgrep -r LOG_LEVEL=debug . ## to be sure that no containers of the cluster have been forgotten on a debug level
