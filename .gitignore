@@ -1,1 +1,4 @@
 .cd-message
+cluster_info.sh
+gen.py
+sx_patterns.sh
