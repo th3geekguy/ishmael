@@ -1,0 +1,73 @@
+<html lang="en" class="">
+	<head>
+		<meta charset="UTF-8">
+		<title>Cluster Info</title>
+		<script src="https://cdn.tailwindcss.com"></script>
+	<body>
+		<div class="bg-gray-100">
+			<div class="mx-auto max-w-7xl py-12 sm:px-6 lg:px-8">
+				<div class="mx-auto max-w-4xl">
+					<div class="overflow-hidden bg-white shadow sm:rounded-lg">
+						<div class="px-4 py-5 sm:px-6">
+							<h3 class="text-lg font-medium leading-6 text-gray-900">Cluster Detail</h3>
+							<p class="mt-1 max-w-2xl text-sm text-gray-500">Expanded details on cluster</p>
+						</div>
+						<div class="border-t border-gray-200">
+							<dl>
+								<div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+									<dt class="text-sm font-medium text-gray-500">Cluster ID</dt>
+									<dd class="mt-1 text-sm text-gray-900 sm:col-span-2 sm:mt-0">{f_cluster_id}</dd>
+								</div>
+								<div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+									<dt class="text-sm font-medium text-gray-500">Managers</dt>
+									<dd class="mt-1 text-sm text-gray-900 sm:col-span-2 sm:mt-0">{f_managers}</dd>
+								</div>
+								<div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6"></div>
+								<div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+									<dt class="text-sm font-medium text-gray-500">Operating System</dt>
+									<dd class="mt-1 text-sm text-gray-900 sm:col-span-2 sm:mt-0">
+										<table class="table-auto">{f_operating_systems}</table>
+									</dd>
+								</div>
+								<div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+									<dt class="text-sm font-medium text-gray-500">Kernel Versions</dt>
+									<dd class="mt-1 text-sm text-gray-900 sm:col-span-2 sm:mt-0">
+										<table class="table-auto">{f_kernel_versions}</table>
+									</dd>
+								</div>
+								<div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+									<dt class="text-sm font-medium text-gray-500">License Info</dt>
+									<dd class="mt-1 text-sm text-gray-900 sm:col-span-2 sm:mt-0">
+										<table class="table-auto">
+											<tr>
+												<td class="pr-8">Max Engines:</td>
+												<td>{f_max_engines}</td>
+											</tr>
+											<tr>
+												<td class="pr-8">Expiration:</td>
+												<td>{f_expiration}</td>
+											</tr>
+											<tr>
+												<td class="pr-8">Tier:</td>
+												<td>{f_tier}</td>
+											</tr>
+											<tr>
+												<td class="pr-8">License Type:</td>
+												<td>{f_license_type}</td>
+											</tr>
+											<tr>
+												<td class="pr-8">Scanning Enabled:</td>
+												<td>{f_scanning_enabled}</td>
+											</tr>
+										</table>
+									</dd>
+								</div>
+							</dl>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		<script src="https://cdn.tailwindcss.com"></script>
+	</body>
+</html>

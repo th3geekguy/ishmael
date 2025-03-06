@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 
-import json
-import os
-import subprocess
+import json, os, subprocess
 
 clusterid = ""
 managers = []
@@ -10,17 +8,45 @@ operatingsystems = {}
 kernelversions = {}
 license = {}
 
+class Versions:
+    def __init__(self, mcr, mke, msr):
+        self.mcr = mcr
+        self.mke = mke
+        self.msr = msr
+
+class System:
+    def __init__(self, os, release, collector, hpvs, kernel):
+        self.os = os
+        self.release = release
+        self.collector = collector
+        self.hpvs = hpvs
+        self.kernel = kernel
+
+class Timestamps:
+    def __init__(self, created, updated):
+        self.created = created
+        self.updated = updated
+
+class Node:
+    def __init__(self, role, id, membership, orchestration, ip, versions, system, timestamps, health):
+        self.role = role
+        self.id = id
+        self.membership = membership
+        self.orchestration = orchestration
+        self.ip = ip
+        self.versions = Versions(*versions)
+        self.system = System(*system)
+        self.timestamps = Timestamps(*timestamps)
+        self.health = health
+        self.status = health
+
 def gather_data():
     global clusterid, managers, operatingsystem, kernelversions
 
     # Get clusterid
-    try:
-        with open("dsinfo.json", "r") as dsinfo_file:
-            clusterid = next(line.split("=")[1].split("\"")[0].strip(',\\"') for line in dsinfo_file if "ucp-instance-id" in
-                    line and "=" in line)
-    except FileNotFoundError:
-        print(f"ERROR: dsinfo not found in root of support; could not determine clusterid")
-
+    with open("dsinfo.json", "r") as dsinfo_file:
+        clusterid = next(line.split("=")[1].split("\"")[0].strip(',\\"')
+                for line in dsinfo_file if "ucp-instance-id" in line and "=" in line)
 
     # Get managers
     with open("ucp-nodes.txt", "r") as ucp_nodes_file:
@@ -29,14 +55,7 @@ def gather_data():
             if node["Spec"]["Role"] == "manager"
         ))
 
-    # Get operating system
-    #operatingsystem = subprocess.check_output(
-    #    'grep --color=auto --color=auto --include \\*dsinfo.txt -hir -m 1 -B 6 -e "version_id" |'
-    #    ' sed -e "/--/d" -e "/ID/d" -e "/^VAR/d" | sed \'s/.*="\\(.*\\)".*/\\1/\' | awk \'!x[$0]++\' | paste -sd \' \'',
-    #    shell=True, text=True).strip()
-
-    # Get unique nodes
-    with open("ucp-nodes.txt", "r") as ucp_nodes_file:
+        # Get unique nodes
         nodes = sorted(set(
             node["Description"]["Hostname"] for node in json.load(ucp_nodes_file)
         ))

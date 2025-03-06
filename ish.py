@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import argparse, os, json, fnmatch, numpy
+import argparse, os, json, fnmatch, numpy, re
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Display cluster/node information found in support dump')
@@ -90,23 +90,24 @@ def full_os_details_sep(hostname):
                 elif line.startswith("VERSION="):
                     os_version = line.split('=')[1].strip().strip('"')
                     os_version = os_version.split('(')[0].strip()   ## 20.04.1 LTS (Focal Fossa)  --> 20.04.1 LTS
-                full_os_text = os_type + '-' + os_version + '/' + dsi_os
 
-                if line.startswith("Kernel Version:"):
+                elif line.startswith("Kernel Version:"):
                     kernel = line.split(':')[1].strip()
 
-                if line.startswith("Hypervisor vendor: "):
+                elif line.startswith("Hypervisor vendor: "):
                     hpv = line.split(': ')[1].strip()
                     break
-                if line.startswith("mount"):   # reached this point? you will not find any line about Hypervisor, stop reading the rest of the file
+                elif line.startswith("mount"):   # reached this point? you will not find any line about Hypervisor, stop reading the rest of the file
                     break
+
             #full_os_text = (os_type + '-' + os_version + '/' + dsi_os).strip()
+                full_os_text = os_type + '-' + os_version + '/' + dsi_os
                 os_ext = '-'.join([os_type, os_version]).strip()
             return os_ext, dsi_os, hpv, kernel  # in case that the dsinfo.txt file has no line starting with Hypervisor vendor:  at least return - as hpv
     except FileNotFoundError:                 # for nodes that the SD did not gather info, at least return the default values
         return os_ext, dsi_os, hpv, kernel
 
-def get_cluster_id(hostname):
+def get_cluster_id_old(hostname):
     node_dsinfo_filename = os.path.join(hostname, "dsinfo.json")
     try:
         with open(node_dsinfo_filename, 'r') as inf:
@@ -116,6 +117,18 @@ def get_cluster_id(hostname):
     except FileNotFoundError:
         return None
 
+def get_cluster_id(hostname):
+    file_path = os.path.join(hostname, "dsinfo.txt")
+
+    if os.path.exists(file_path):
+        regex = re.compile("com.docker.ucp.InstanceID\":\"[A-Za-z0-9]*")
+        
+        with open(file_path, 'r') as file:
+            for line_number, line in enumerate(file, 1):
+                match = regex.search(line)
+                if match:
+                    return match.group(0).split(':')[1].strip('"').strip()
+    return None
 
 def sd_print(sd, show_nc=True):
     body_widths = [max(map(len, col)) for col in zip(*(node.values() for node in sd))]
@@ -251,7 +264,7 @@ def display_nodes(args, f):
             s = sorted(hw, key=lambda k: k['hostname'])
             sd_print(s)
     else:
-        v = [e | next((f for f in hw if f["hostname"] == e["hostname"]), None) for e in nodes]
+        v = [e | next((f for f in hw if f["hostname"] == e["hostname"]), {}) for e in nodes]
         vv = sorted(v, key=lambda k: k['hostname'])
         json_print(vv)
 

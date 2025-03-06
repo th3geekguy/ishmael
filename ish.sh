@@ -2,6 +2,7 @@
 
 VERBOSE=false
 HARDWARE=false
+BASE_FILE="ucp-nodes.txt"
 
 while true; do
 	case "$1" in
@@ -12,86 +13,102 @@ while true; do
 	esac
 done
 
-JQ=$(jq -C '.[] |
-			[(.Description.Hostname // "none"),
-				.ID[0:10],
-				(if .ManagerStatus.Leader == true then
-					"leader"
-				else
-					.Spec.Role
-				end),
-				.Spec.Availability,
-				.Status.State,
-				(if .Status.Addr == "127.0.0.1" or .Status.Addr == "0.0.0.0" then
-					(.ManagerStatus.Addr | gsub(":.*"; ""))
-				else
-					.Status.Addr
-				end),
-				.Description.Engine.EngineVersion,
-				.Spec.Labels."com.docker.ucp.access.label",
-				(if .Spec.Labels."com.docker.ucp.orchestrator.swarm" == "true" and
-					.Spec.Labels."com.docker.ucp.orchestrator.kubernetes" == "true" then
-					"swarm/kube"
-				elif .Spec.Labels."com.docker.ucp.orchestrator.swarm" == "true" then
-					"swarm"
-				elif .Spec.Labels."com.docker.ucp.orchestrator.kubernetes" == "true" then
-					"kube"
-				else
-					"-"
-				end),
-				(.CreatedAt | (.[0:19] | strptime("%Y-%m-%dT%H:%M:%S") | strftime("%Y-%m-%d"))) + "/" +
-				(.UpdatedAt | (.[0:19] | strptime("%Y-%m-%dT%H:%M:%S") | strftime("%Y-%m-%d"))),
-				(.Status.Message | gsub(" "; "_"))]
-			|@tsv' -r ucp-nodes.txt | sort);
+extract_data() {
+	jq -r '
+	  sort_by(Description.Hostname) |
+			.[] | [
+					(.Description.Hostname // "N/A"),
+					(.ID // "N/A"),
+					(if .ManagerStatus.Leader == true then
+						"leader"
+					else
+						.Spec.Role // "N/A"
+					end),
+					(.Spec.Availability // "N/A"),
+					(.Status.State // "N/A"),
+					(if .Status.Addr == "127.0.0.1" or .Status.Addr == "0.0.0.0" then
+						(.ManagerStatus.Addr | gsub(":.*"; ""))
+					else
+						.Status.Addr // "N/A"
+					end),
+					(.Description.Engine.EngineVersion // "-"),
+					(.Spec.Labels."com.docker.ucp.access.label" // "-"),
+					(.Spec.Labels."com.docker.ucp.node-state-augmented.reconciler-ucp-version" // "-"),
+					(if .Spec.Labels."com.docker.ucp.orchestrator.swarm" == "true" and
+						 .Spec.Labels."com.docker.ucp.orchestrator.kubernetes" == "true" then
+							"swarm/kube"
+					elif .Spec.Labels."com.docker.ucp.orchestrator.swarm" == "true" and
+							 (.Spec.Labels."com.docker.ucp.orchestrator.kubernetes" != "true" or
+								.Spec.Labels."com.docker.ucp.orchestrator.kubernetes" == null) then
+							"swarm/-"
+					elif .Spec.Labels."com.docker.ucp.orchestrator.kubernetes" == "true" and
+							 (.Spec.Labels."com.docker.ucp.orchestrator.swarm" != "true" or
+								.Spec.Labels."com.docker.ucp.orchestrator.swarm" == null) then
+							"-/kube"
+					else
+							"-/-"
+					end),
+					(.CreatedAt | sub("T.*"; "") // "N/A"),
+					(.UpdatedAt | sub("T.*"; "") // "N/A"),
+					(.Status.Message // "N/A")
+			] | @tsv
+			' "$BASE_FILE"
+}
+
+calc_col_widths() {
+}
 
 # get OS versions
 OS=""
 HPVS_OUT=""
-for file in $(find . -iname "dsinfo.txt");
+
+echo "" > .os.interim
+
+find . -iname "dsinfo.txt" -print0 | while IFS= read -d $'\0' filename;
 do
-  DSI=$(grep -m1 "Operating System: " $file |\
+  DSI=$(grep -m1 "Operating System: " $filename |\
     cut -d':' -f2 |\
 		xargs |\
 		cut -d'(' -f1 |\
 		xargs);
 
-  TYPE=$(grep -m1 "^NAME=" $file |\
+  TYPE=$(grep -m1 "^NAME=" $filename |\
     cut -d'=' -f2 |\
     xargs |\
 		sed 's/Red.*/RHEL/');
 
-  VERSION=$(grep -m1 "^VERSION=" $file |\
+  VERSION=$(grep -m1 "^VERSION=" $filename |\
     cut -d'=' -f2 |\
     xargs |\
     cut -d'(' -f1 |\
     xargs);
 
-  HOSTNAME=$(echo $file |\
+  HOSTNAME=$(echo $filename |\
     cut -d'/' -f2);
 
-	HPVS=$(grep -m1 "Hypervisor vendor: " $file |\
+	HPVS=$(grep -m1 "Hypervisor vendor: " $filename |\
 		cut -d':' -f2 |\
 		xargs);
 
-  OS=$(echo -e "$OS\n$HOSTNAME\t$TYPE-${VERSION}/$DSI" |\
-		sed 's/Red Hat Enterprise Linux/RHEL/g; s/ /_/g' | sort);
+	echo -e "$HOSTNAME\t$TYPE-${VERSION}/$DSI" | sed 's/Red Hat Enterprise Linux/RHEL/g; s/ /_/g' | sort >> .os.interim
   HPVS_OUT=$(echo -e "$HPVS_OUT\n$HOSTNAME\t$HPVS" | sort | awk NF);
 done
 
 # build output with jq output and OS info
-INTERIM=$(join <(echo "$JQ") <(echo "$OS") -a1 -e"-----/NoInfo" -o'1.1 1.2 1.3 2.2 1.4 1.5 1.6 1.7 1.8 1.9 1.10 1.11');
+INTERIM=$(join <(echo "$JQ") .os.interim -a1 -e"-----/NoInfo" -o'1.1 1.2 1.3 2.2 1.4 1.5 1.6 1.7 1.8 1.9 1.10 1.11');
+rm .os.interim
 
 # add HPVS
 INTERIM=$(join <(echo "$INTERIM") <(echo "$HPVS_OUT") -a1 -e"None" -o'1.1 1.2 1.3 1.4 2.2 1.5 1.6 1.7 1.8 1.9 1.10 1.11 1.12');
 
 # get MKE versions
 MKE_OUT="";
-for file in $(find . -iname "ucp-proxy.txt");
+find . -iname "ucp-proxy.txt" -print0 | while read -d $'\0' filename
 do
-  MKE=$(jq -r '.[].Config.Env[] | select(startswith("IMAGE_VERSION"))' $file |\
+  MKE=$(jq -r '.[].Config.Env[] | select(startswith("IMAGE_VERSION"))' $filename |\
     cut -d'=' -f2);
 
-  HOSTNAME=$(echo $file |\
+  HOSTNAME=$(echo $filename |\
     cut -d'/' -f2);
 
 	MKE_OUT=$(echo -e "$MKE_OUT\n$HOSTNAME\t$MKE" | sort | awk NF);
@@ -99,12 +116,13 @@ done
 
 # get MSR versions
 MSR_OUT="";
-for file in $(find . -iname "dtr-registry-*.txt");
+find . -iname "dtr-registry-*.txt" -print0 | while read -d $'\0' filename
+#for filename in $(find . -iname "dtr-registry-*.txt");
 do
-  MSR=$(jq -r '.[].Config.Env[] | select(startswith("DTR_VERSION"))' $file |\
+  MSR=$(jq -r '.[].Config.Env[] | select(startswith("DTR_VERSION"))' $filename |\
     cut -d'=' -f2);
 
-  HOSTNAME=$(echo $file |\
+  HOSTNAME=$(echo $filename |\
     cut -d'/' -f2);
 
 	MSR_OUT=$(echo -e "$MSR_OUT\n$HOSTNAME\t$MSR\tMSR" | sort | awk NF);
