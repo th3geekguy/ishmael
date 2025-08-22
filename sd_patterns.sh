@@ -7,17 +7,17 @@
 
 search_sd() {
 	PATTERN_PRINT=false
-	for file in $( rgrep -l "$PATTERN" . ) 
+	for file in $( rg -l "$PATTERN" . ) 
 	do
 		if [ "$PATTERN_PRINT" = false ]; then
 			echo -e "\nThe pattern \x1b[31m'$PATTERN'\x1b[0m appears "
 			PATTERN_PRINT=true
 		fi
 		NODE=${file%%/*}
-		NUMBER_OF_OCCURENCES=$(grep "$PATTERN" $file | wc -l )
+		NUMBER_OF_OCCURENCES=$(rg "$PATTERN" $file | wc -l )
 		if [ $NUMBER_OF_OCCURENCES -gt 0 ]; then
 			echo -e "\n    \x1b[34m$NUMBER_OF_OCCURENCES times in file\x1b[0m: \x1b[32m$file\x1b[0m and last line:\n"
-			LAST_LINE=$(grep  "$PATTERN" $file | tail -1)
+			LAST_LINE=$(rg  "$PATTERN" $file | tail -1)
 			echo -e "        $LAST_LINE"
 		fi
 	done
@@ -101,4 +101,4 @@ for PATTERN in "${PATTERNS[@]}"
 do
 	search_sd
 done
-rgrep -r LOG_LEVEL=debug . ## to be sure that no containers of the cluster have been forgotten on a debug level
+rg --no-heading -N LOG_LEVEL=debug . ## to be sure that no containers of the cluster have been forgotten on a debug level
