@@ -86,8 +86,8 @@ PATTERNS=(
 	'[Nn]o space left on device'
 	'cannot allocate memory'
 	'error detaching from network .*: could not find network attachment for container .* to network '
-	'FieldPath:"spec.containers{calico-node}"}, Reason:"Unhealthy", Message:"Liveness probe failed:'
-	'FieldPath:"spec.containers{calico-node}"}, Reason:"Unhealthy", Message:"Readiness probe failed:'
+	'FieldPath:"spec.containers\{calico-node\}"}, Reason:"Unhealthy", Message:"Liveness probe failed:'
+	'FieldPath:"spec.containers\{calico-node\}"}, Reason:"Unhealthy", Message:"Readiness probe failed:'
 	"Unable to route request"
 	"Legacy license failure"
 	'level=error msg="agent: session failed" backoff=.* error="rpc error: code = Unavailable desc = all SubConns are in TransientFailure'
