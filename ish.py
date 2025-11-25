@@ -4,10 +4,14 @@ import argparse, os, json, fnmatch, numpy, re
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Display cluster/node information found in support dump')
-    parser.add_argument('-c', '--clusterid', action='store_true', help='Gather cluster id from dsinfo.json')
-    parser.add_argument('-j', '--json', action='store_true', help='Render output as json')
-    parser.add_argument('-v', '--verbose', action='store_true', help='Verbose mode')
-    parser.add_argument('-w', '--hardware', action='store_true', help='Display hardware specific details')
+    parser.add_argument('-b', '--brief', action='store_true', help='display shorter output for copying to case, etc.')
+    parser.add_argument('-c', '--clusterid', action='store_true', help='gather cluster id from dsinfo.json')
+    parser.add_argument('-j', '--json', action='store_true', help='render output as json')
+    parser.add_argument('-m', '--managers', action='store_true', help='display only manager nodes')
+    parser.add_argument('-r', '--registries', action='store_true', help='display only registry nodes')
+    parser.add_argument('-v', '--verbose', action='store_true', help='verbose mode')
+    parser.add_argument('-w', '--workers', action='store_true', help='display only worker nodes')
+    parser.add_argument('-x', '--hardware', action='store_true', help='display hardware specific details')
     arguments = parser.parse_args()
     return arguments
 
@@ -155,6 +159,7 @@ def display_nodes(args, f):
 
     nodes = []
     hw = []
+    brief = []
     cluster = []
 
     for node in sd:
@@ -251,22 +256,67 @@ def display_nodes(args, f):
                        'cpus': cpus, \
                        'memory': mem})
 
+        if args.brief and not args.verbose:
+            brief.append({'hostname': hostname, \
+                          'role': role, \
+                          'ip': addr, \
+                          'state': state, \
+                          'mcr': engver, \
+                          #'mke/msr': ucpdtrver, \
+                          'mke': ucpver, \
+                          'msr': dtrver, \
+                          'status': stsmsg, \
+                          'os ': os})
+
         if args.clusterid:
             cluster.append(get_cluster_id(hostname))
 
-    if not args.json:
-        if args.verbose or not args.hardware:
-            s = sorted(nodes, key=lambda k: k['hostname'])
+    filters = args.managers or args.workers or args.registries
+    filter_list = []
+
+    if filters:
+        if args.managers:
+            filter_list.append('manager')
+            filter_list.append('leader')
+        if args.workers:
+            filter_list.append('worker')
+        if args.registries:
+            filter_list.append('worker/MSR')
+
+    if args.json:
+        if filters:
+            v = [e | next((f for f in hw if f["hostname"] == e["hostname"]), {}) for e in nodes if e["role"] in filter_list]
+            s = sorted(v, key=lambda k: k['hostname'])
+        else:
+            v = [e | next((f for f in hw if f["hostname"] == e["hostname"]), {}) for e in nodes]
+            s = sorted(v, key=lambda k: k['hostname'])
+        json_print(s)
+        #v = [e | next((f for f in hw if f["hostname"] == e["hostname"]), {}) for e in nodes]
+        #vv = sorted(v, key=lambda k: k['hostname'])
+        #json_print(vv)
+    elif args.brief:
+        if filters:
+            s = sorted([node for node in brief if node['role'] in filter_list], key=lambda k: k['hostname'])
+        else:
+            s = sorted(brief, key=lambda k: (k['role'], k['hostname']))
+        sd_print(s)
+    #elif args.pretty:
+        #pass
+    else:
+        if not args.hardware:
+            if filters:
+                s = sorted([node for node in nodes if node['role'] in filter_list], key=lambda k: k['hostname'])
+            else:
+                s = sorted(nodes, key=lambda k: k['hostname'])
             sd_print(s, not args.verbose)
         if args.verbose:
             print("")
         if args.verbose or args.hardware:
-            s = sorted(hw, key=lambda k: k['hostname'])
+            if filters:
+                s = sorted([node for node in hw if node['role'] in filter_list], key=lambda k: k['hostname'])
+            else:
+                s = sorted(hw, key=lambda k: k['hostname'])
             sd_print(s)
-    else:
-        v = [e | next((f for f in hw if f["hostname"] == e["hostname"]), {}) for e in nodes]
-        vv = sorted(v, key=lambda k: k['hostname'])
-        json_print(vv)
 
     if args.clusterid:
         print('Cluster ID:', ' '.join(set([i for i in cluster if i is not None])) or '(failed to fetch)')

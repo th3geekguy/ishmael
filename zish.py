@@ -109,27 +109,19 @@ def full_os_details_sep(archive, hostname):
     else:
         return os_ext, dsi_os, hpv, kernel
 
-def get_cluster_id_old(hostname):
-    node_dsinfo_filename = os.path.join(hostname, "dsinfo.json")
-    try:
-        with open(node_dsinfo_filename, 'r') as inf:
-            specs = json.load(inf)
-        swarm = specs['docker_info']['Swarm'] if 'docker_info' in specs else ''
-        return swarm['Cluster']['ID'] if 'Cluster' in swarm else None
-    except FileNotFoundError:
-        return None
+def get_cluster_id(archive, hostname):
+    dsinfo_filename = "dsinfo.txt"
+    inf = [a for a in archive.namelist() if hostname in a and dsinfo_filename in a]
 
-def get_cluster_id(hostname):
-    file_path = os.path.join(hostname, "dsinfo.txt")
-
-    if os.path.exists(file_path):
+    if inf:
         regex = re.compile("com.docker.ucp.InstanceID\":\"[A-Za-z0-9]*")
-        
-        with open(file_path, 'r') as file:
-            for line_number, line in enumerate(file, 1):
-                match = regex.search(line)
-                if match:
-                    return match.group(0).split(':')[1].strip('"').strip()
+
+        inf = archive.read(inf[0]).decode('utf-8')
+        for line in inf.splitlines():
+            line = line.lstrip()
+            match = regex.search(line)
+            if match:
+                return match.group(0).split(':')[1].strip('"').strip()
     return None
 
 def sd_print(sd, show_nc=True):
@@ -255,7 +247,7 @@ def display_nodes(args, f):
                            'memory': mem})
 
             if args.clusterid:
-                cluster.append(get_cluster_id(hostname))
+                cluster.append(get_cluster_id(archive, hostname))
 
         if not args.json:
             if args.verbose or not args.hardware:
