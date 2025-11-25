@@ -12,6 +12,14 @@ def parse_arguments():
     parser.add_argument('-v', '--verbose', action='store_true', help='verbose mode')
     parser.add_argument('-w', '--workers', action='store_true', help='display only worker nodes')
     parser.add_argument('-x', '--hardware', action='store_true', help='display hardware specific details')
+    parser.add_argument('-b', '--brief', action='store_true', help='display shorter output for copying to case, etc.')
+    parser.add_argument('-c', '--clusterid', action='store_true', help='gather cluster id from dsinfo.json')
+    parser.add_argument('-j', '--json', action='store_true', help='render output as json')
+    parser.add_argument('-m', '--managers', action='store_true', help='display only manager nodes')
+    parser.add_argument('-r', '--registries', action='store_true', help='display only registry nodes')
+    parser.add_argument('-v', '--verbose', action='store_true', help='verbose mode')
+    parser.add_argument('-w', '--workers', action='store_true', help='display only worker nodes')
+    parser.add_argument('-x', '--hardware', action='store_true', help='display hardware specific details')
     arguments = parser.parse_args()
     return arguments
 
@@ -160,6 +168,7 @@ def display_nodes(args, f):
     nodes = []
     hw = []
     brief = []
+    brief = []
     cluster = []
 
     for node in sd:
@@ -268,6 +277,18 @@ def display_nodes(args, f):
                           'status': stsmsg, \
                           'os ': os})
 
+        if args.brief and not args.verbose:
+            brief.append({'hostname': hostname, \
+                          'role': role, \
+                          'ip': addr, \
+                          'state': state, \
+                          'mcr': engver, \
+                          #'mke/msr': ucpdtrver, \
+                          'mke': ucpver, \
+                          'msr': dtrver, \
+                          'status': stsmsg, \
+                          'os ': os})
+
         if args.clusterid:
             cluster.append(get_cluster_id(hostname))
 
@@ -312,6 +333,10 @@ def display_nodes(args, f):
         if args.verbose:
             print("")
         if args.verbose or args.hardware:
+            if filters:
+                s = sorted([node for node in hw if node['role'] in filter_list], key=lambda k: k['hostname'])
+            else:
+                s = sorted(hw, key=lambda k: k['hostname'])
             if filters:
                 s = sorted([node for node in hw if node['role'] in filter_list], key=lambda k: k['hostname'])
             else:
