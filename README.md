@@ -22,10 +22,24 @@ From the root of the extracted support dump, run `ish` and ouput of the nodes an
 ish | less -SR
 ```
 
+## Examination without Extraction
+Run the following script on a support dump zip without extracting it to also get sd_nodes output:
+```bash
+~/Projects/ishmael/zish.py docker_support_dump.zip
+```
+
 ## Common Patterns
 Common node and cluster issues can be gathered from support dump by running the following from the root of extracted support dump directory: (you could also alias this)
 ```bash
 bash ~/Projects/ishmael/sd_patterns.sh
+```
+
+E.g. alias:
+```bash
+icheck() {
+  clear;
+  bash ~/Projects/ishmael/sd_patterns.sh | tee icheck.log # the tee will also save the output for retrieval later
+}
 ```
 
 Print out is sectioned by:
