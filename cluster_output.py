@@ -50,15 +50,18 @@ def gather_data():
 
     # Get managers
     with open("ucp-nodes.txt", "r") as ucp_nodes_file:
-        managers = sorted(set(
-            node["Description"]["Hostname"] for node in json.load(ucp_nodes_file)
-            if node["Spec"]["Role"] == "manager"
-        ))
+        ucp_nodes = json.load(ucp_nodes_file)
 
-        # Get unique nodes
-        nodes = sorted(set(
-            node["Description"]["Hostname"] for node in json.load(ucp_nodes_file)
-        ))
+        managers = sorted({
+            node["Description"]["Hostname"]
+            for node in ucp_nodes
+            if node["Spec"]["Role"] == "manager"
+        })
+
+        nodes = sorted({
+            node["Description"]["Hostname"]
+            for node in ucp_nodes
+        })
 
     for node in nodes:
         error_file_path = f"{node}.error"

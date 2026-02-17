@@ -219,7 +219,7 @@ def display_nodes(args, f):
                       'id': cid, \
                       'role': role, \
                       #'os_version': os_string, \
-                      'os': os_version, \
+                      'version': os_version, \
                       'release': release, \
                       'hpvs': hypervisor, \
                       'member': avail, \
@@ -235,7 +235,7 @@ def display_nodes(args, f):
                       'created': c_at, \
                       'updated': u_at, \
                       'status': stsmsg, \
-                      'os ': os})
+                      'os': os})
 
         if args.hardware or args.verbose:
             '''Hardware Specific'''
