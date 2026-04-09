@@ -286,10 +286,10 @@ def display_nodes(args, f):
     if args.json:
         if filters:
             v = [e | next((f for f in hw if f["hostname"] == e["hostname"]), {}) for e in nodes if e["role"] in filter_list]
-            s = sorted(v, key=lambda k: k['hostname'])
+            s = sorted(v, key=lambda k: (k['role'], k['hostname']))
         else:
             v = [e | next((f for f in hw if f["hostname"] == e["hostname"]), {}) for e in nodes]
-            s = sorted(v, key=lambda k: k['hostname'])
+            s = sorted(v, key=lambda k: (k['role'], k['hostname']))
         json_print(s)
         #v = [e | next((f for f in hw if f["hostname"] == e["hostname"]), {}) for e in nodes]
         #vv = sorted(v, key=lambda k: k['hostname'])
@@ -307,7 +307,7 @@ def display_nodes(args, f):
             if filters:
                 s = sorted([node for node in nodes if node['role'] in filter_list], key=lambda k: k['hostname'])
             else:
-                s = sorted(nodes, key=lambda k: k['hostname'])
+                s = sorted(nodes, key=lambda k: (k['role'], k['hostname']))
             sd_print(s, not args.verbose)
         if args.verbose:
             print("")
@@ -315,7 +315,7 @@ def display_nodes(args, f):
             if filters:
                 s = sorted([node for node in hw if node['role'] in filter_list], key=lambda k: k['hostname'])
             else:
-                s = sorted(hw, key=lambda k: k['hostname'])
+                s = sorted(hw, key=lambda k: (k['role'], k['hostname']))
             sd_print(s)
 
     if args.clusterid:

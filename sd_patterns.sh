@@ -28,6 +28,7 @@ search_sd() {
 
 #### 'containers with unready status'  ## this produces very long lines, and I am not sure if it is helpful to search for, so I took it out for now
 PATTERNS=(
+	'Calico CNI Plugin Pod is Unhealthy:'
 	'left gossip cluster'
 	"healthscore:[2-9] (connectivity issues)"
 	'with result "error:context canceled" took too long '
