@@ -53,6 +53,8 @@ def gather_data():
                 )
                 kernelversions[nodepath] = nodekernel
 
+                # reset iteration
+                nodeinfo_file.seek(0)
                 node_os = next(
                     line.strip().split(':')[1] for line in nodeinfo_file
                     if "Operating System" in line
